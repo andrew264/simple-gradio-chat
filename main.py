@@ -1,19 +1,13 @@
 import gradio as gr
-import ollama
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_list = ollama.list()
-if model_list.models:
-    print(f"Available models:")
-    for m in model_list.models:
-        print(f'- {m.model}')
-else:
-    print('pulling model...')
-    ollama.pull('llama3.2:1b')
-    model_list = ollama.list()
-model_name = model_list.models[0].model
-print(f"\nModel selected: {model_name}")
+model_name = "HuggingFaceTB/SmolLM2-135M-Instruct"
+device = "cpu"
+print(f"Model selected: {model_name}")
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
 
-SYSTEM_PROMPT = """Your name is Sydney, you are a AI model made by Andrew. You are a helpful assistant.
+SYSTEM_PROMPT = """Your name is Sydney, You are a AI model made by Andrew. You are a helpful assistant.
 """
 
 
@@ -21,16 +15,17 @@ def run_inference(message: str, history: list):
     history.insert(0, {'role': 'system', 'content': SYSTEM_PROMPT})
     chat_message = {'role': 'user', 'content': message}
     history.append(chat_message)
-    stream = ollama.chat(model=model_name, messages=history, stream=True)
-    partial_message = ""
-    for chunk in stream:
-        if len(chunk['message']['content']) != 0:
-            partial_message = partial_message + chunk['message']['content']
-            yield partial_message
+    input_text = tokenizer.apply_chat_template(history, tokenize=False)
+    inputs = tokenizer.encode(input_text, return_tensors="pt").to(device)
+    outputs = model.generate(inputs, max_new_tokens=256, temperature=0.2, top_p=0.9, do_sample=True)
+    decoded = tokenizer.decode(outputs[0])
+    response = decoded.split("<|im_start|>assistant\n")[-1].split("<|im_end|>")[0]
 
-    print('=' * 50)
+    print('=' * 100)
     for h in history:
         print(h)
+
+    return response
 
 
 if __name__ == '__main__':
