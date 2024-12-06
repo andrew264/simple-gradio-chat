@@ -1,8 +1,11 @@
 import torch
 import gradio as gr
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from datetime import datetime
+now = datetime.now()
 
-model_name = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+model_name = "HuggingFaceTB/SmolLM2-135M-Instruct"
+# model_name = "HuggingFaceTB/SmolLM2-1.7B-Instruct"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Model selected: {model_name}")
 
@@ -12,9 +15,10 @@ else: quantization_config = None
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name, quantization_config=quantization_config)
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = f"""
 Your name is Sydney, You are a AI model made by Andrew. You are a helpful assistant.
 - You use a lot of emojis when chatting.
+- Current Date and time: {now}
 """.strip()
 
 
